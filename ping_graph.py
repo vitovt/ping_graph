@@ -2,7 +2,7 @@
 
 import subprocess
 import re
-import time
+import time as tme
 import matplotlib.pyplot as plt
 import argparse
 import threading
@@ -37,10 +37,12 @@ def ping(host, times, pings, timeout, interval):
             times.append(timeout)
             pings.append(ping_count)
 
-        time.sleep(interval)
+        tme.sleep(interval)
 
-def update_stats(ax, times, timeout):
+
+def update_stats(ax, times, timeout, start_time):
     if times:
+        total_running_time = tme.time() - start_time
         avg_time = np.mean([time for time in times if time != timeout])
         max_time = np.max(times)
         min_time = np.min([time for time in times if time != timeout])
@@ -61,6 +63,7 @@ def update_stats(ax, times, timeout):
                 current_sequence = 0
 
         stats_text = f'Average: {avg_time:.2f} ms\nMax: {max_time:.2f} ms\nMin: {min_time:.2f} ms\nStd Dev: {std_dev:.2f} ms\n% Timeout(>=): {percentage_greater_than_timeout:.2f}%\nSeq.N loss: {max_sequential_timeout}\n---settings---\n-W timeout: {timeout} ms\n-i interval: {interval} s'
+        stats_text += f'\n\nRunTime: {total_running_time:.2f} s'
         ax.text(0.3, 0.95, stats_text, transform=ax.transAxes, fontsize=10, verticalalignment='top', horizontalalignment='right', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
 
 def on_close(event):
@@ -81,7 +84,7 @@ if __name__ == "__main__":
     interval = args.interval
     times = []
     pings = []
-    start_time = time.time()
+    start_time = tme.time()
 
     # Start the ping thread
     ping_thread = threading.Thread(target=ping, args=(host, times, pings, timeout, interval))
@@ -103,7 +106,7 @@ if __name__ == "__main__":
             ax.relim()
             ax.autoscale_view()
 
-            update_stats(ax, times, timeout)
+            update_stats(ax, times, timeout, start_time)
 
         plt.pause(1)
     print('Exiting ...')
