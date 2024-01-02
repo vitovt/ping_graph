@@ -49,7 +49,17 @@ def update_stats(ax, times, timeout):
         times_greater_than_timeout = len([time for time in times if time > timeout])
         percentage_greater_than_timeout = (times_greater_than_timeout / len(times)) * 100
 
-        stats_text = f'Average: {avg_time:.2f} ms\nMax: {max_time:.2f} ms\nMin: {min_time:.2f} ms\nStd Dev: {std_dev:.2f} ms\n% Timeout(>=): {percentage_greater_than_timeout:.2f}%\n---settings---\n-W timeout: {timeout} ms\n-i interval: {interval} s'
+        # Calculate the maximum sequential number of times >= timeout
+        max_sequential_timeout = 0
+        current_sequence = 0
+        for time in times:
+            if time >= timeout:
+                current_sequence += 1
+                max_sequential_timeout = max(max_sequential_timeout, current_sequence)
+            else:
+                current_sequence = 0
+
+        stats_text = f'Average: {avg_time:.2f} ms\nMax: {max_time:.2f} ms\nMin: {min_time:.2f} ms\nStd Dev: {std_dev:.2f} ms\n% Timeout(>=): {percentage_greater_than_timeout:.2f}%\nSeq.N loss: {max_sequential_timeout}\n---settings---\n-W timeout: {timeout} ms\n-i interval: {interval} s'
         ax.text(0.3, 0.95, stats_text, transform=ax.transAxes, fontsize=10, verticalalignment='top', horizontalalignment='right', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
 
 if __name__ == "__main__":
