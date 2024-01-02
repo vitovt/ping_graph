@@ -6,6 +6,7 @@ import time
 import matplotlib.pyplot as plt
 import argparse
 import threading
+import numpy as np
 
 def ping(host, times, timestamps):
     while True:
@@ -24,6 +25,17 @@ def ping(host, times, timestamps):
             print(f"Failed to ping {host}")
 
         time.sleep(1)
+
+def update_stats(ax, times):
+    if times:
+        avg_time = np.mean(times)
+        max_time = np.max(times)
+        min_time = np.min(times)
+        current_time = times[-1]
+        std_dev = np.std(times)
+
+        stats_text = f'Current: {current_time:.2f} ms\nAverage: {avg_time:.2f} ms\nMax: {max_time:.2f} ms\nMin: {min_time:.2f} ms\nStd Dev: {std_dev:.2f} ms'
+        ax.text(0.02, 0.95, stats_text, transform=ax.transAxes, fontsize=10, verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Ping a host and plot response time.')
@@ -50,5 +62,8 @@ if __name__ == "__main__":
             ax.set_ylabel('Response Time (ms)')
             ax.relim()
             ax.autoscale_view()
+
+            update_stats(ax, times)
+
         plt.pause(1)
 
