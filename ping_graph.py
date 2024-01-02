@@ -8,7 +8,7 @@ import argparse
 import threading
 import numpy as np
 
-def ping(host, times, pings, timeout):
+def ping(host, times, pings, timeout, interval):
     ping_count = 0
     while True:
         # Run the ping command with a timeout
@@ -36,7 +36,7 @@ def ping(host, times, pings, timeout):
             times.append(timeout)
             pings.append(ping_count)
 
-        time.sleep(1)
+        time.sleep(interval)
 
 def update_stats(ax, times, timeout):
     if times:
@@ -45,23 +45,25 @@ def update_stats(ax, times, timeout):
         min_time = np.min([time for time in times if time != timeout])
         std_dev = np.std([time for time in times if time != timeout])
 
-        stats_text = f'Average: {avg_time:.2f} ms\nMax: {max_time:.2f} ms\nMin: {min_time:.2f} ms\nStd Dev: {std_dev:.2f} ms\n---settings---\n-W timeout: {timeout}ms'
+        stats_text = f'Average: {avg_time:.2f} ms\nMax: {max_time:.2f} ms\nMin: {min_time:.2f} ms\nStd Dev: {std_dev:.2f} ms\n---settings---\n-W timeout: {timeout} ms\n-i interval: {interval} s'
         ax.text(0.3, 0.95, stats_text, transform=ax.transAxes, fontsize=10, verticalalignment='top', horizontalalignment='right', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Ping a host and plot response time.')
     parser.add_argument('host', type=str, help='The host to ping')
     parser.add_argument('-W', '--timeout', type=int, default=150, help='Timeout in milliseconds for each ping request')
+    parser.add_argument('-i', '--interval', type=float, default=0.1, help='Interval between pings in seconds. Default is 0.1 second.')
     args = parser.parse_args()
 
     host = args.host
     timeout = args.timeout
+    interval = args.interval
     times = []
     pings = []
     start_time = time.time()
 
     # Start the ping thread
-    ping_thread = threading.Thread(target=ping, args=(host, times, pings, timeout))
+    ping_thread = threading.Thread(target=ping, args=(host, times, pings, timeout, interval))
     ping_thread.start()
 
     plt.ion()
