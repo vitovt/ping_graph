@@ -24,8 +24,8 @@ def ping(host, times, pings, timeout):
                 # Check if the delay exceeds the timeout
                 if delay > timeout:
                     print(f"Response time {delay} ms exceeded timeout of {timeout} ms")
-                    # Treat LONG delay as timeout
-                    times.append(timeout)
+                    # don't Treat LONG delay as timeout
+                    times.append(delay)
                     pings.append(ping_count)
                 else:
                     times.append(delay)
@@ -71,7 +71,7 @@ if __name__ == "__main__":
             ax.clear()
             ax.plot(pings, times, color='green')
             # Highlight timeouts in red
-            ax.scatter([p for p, t in zip(pings, times) if t == timeout], [timeout] * len([t for t in times if t == timeout]), color='red')
+            ax.scatter([p for p, t in zip(pings, times) if t >= timeout], [timeout] * len([t for t in times if t >= timeout]), color='red')
             ax.set_title(f"Ping response times to {host}")
             ax.set_xlabel('Number of Pings')
             ax.set_ylabel('Response Time (ms)')
