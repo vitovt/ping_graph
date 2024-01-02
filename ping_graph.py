@@ -8,62 +8,77 @@ import argparse
 import threading
 import numpy as np
 
-def ping(host, times, timestamps):
+def ping(host, times, pings, timeout):
+    ping_count = 0
     while True:
-        # Run the ping command
-        process = subprocess.Popen(["ping", host, "-c", "1"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        # Run the ping command with a timeout
+        process = subprocess.Popen(["ping", host, "-c", "1", "-W", str(timeout)], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, error = process.communicate()
 
+        ping_count += 1
         if process.returncode == 0:
             # Extract the time from the output
             match = re.search(r"time=(\d+.\d+) ms", out.decode('utf-8'))
             if match:
                 delay = float(match.group(1))
-                times.append(delay)
-                timestamps.append(time.time() - start_time)
+                # Check if the delay exceeds the timeout
+                if delay > timeout:
+                    print(f"Response time {delay} ms exceeded timeout of {timeout} ms")
+                    # Treat LONG delay as timeout
+                    times.append(timeout)
+                    pings.append(ping_count)
+                else:
+                    times.append(delay)
+                    pings.append(ping_count)
         else:
-            print(f"Failed to ping {host}")
+            print(f"Failed to ping {host} or request timed out")
+            # Mark lost ping as timeout value
+            times.append(timeout)
+            pings.append(ping_count)
 
         time.sleep(1)
 
-def update_stats(ax, times):
+def update_stats(ax, times, timeout):
     if times:
-        avg_time = np.mean(times)
+        avg_time = np.mean([time for time in times if time != timeout])
         max_time = np.max(times)
-        min_time = np.min(times)
-        current_time = times[-1]
-        std_dev = np.std(times)
+        min_time = np.min([time for time in times if time != timeout])
+        std_dev = np.std([time for time in times if time != timeout])
 
-        stats_text = f'Current: {current_time:.2f} ms\nAverage: {avg_time:.2f} ms\nMax: {max_time:.2f} ms\nMin: {min_time:.2f} ms\nStd Dev: {std_dev:.2f} ms'
-        ax.text(0.02, 0.95, stats_text, transform=ax.transAxes, fontsize=10, verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+        stats_text = f'Average: {avg_time:.2f} ms\nMax: {max_time:.2f} ms\nMin: {min_time:.2f} ms\nStd Dev: {std_dev:.2f} ms\n---settings---\n-W timeout: {timeout}ms'
+        ax.text(0.3, 0.95, stats_text, transform=ax.transAxes, fontsize=10, verticalalignment='top', horizontalalignment='right', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Ping a host and plot response time.')
     parser.add_argument('host', type=str, help='The host to ping')
+    parser.add_argument('-W', '--timeout', type=int, default=150, help='Timeout in milliseconds for each ping request')
     args = parser.parse_args()
 
     host = args.host
+    timeout = args.timeout
     times = []
-    timestamps = []
+    pings = []
     start_time = time.time()
 
     # Start the ping thread
-    ping_thread = threading.Thread(target=ping, args=(host, times, timestamps))
+    ping_thread = threading.Thread(target=ping, args=(host, times, pings, timeout))
     ping_thread.start()
 
     plt.ion()
     fig, ax = plt.subplots()
     while True:
-        if timestamps:
+        if pings:
             ax.clear()
-            ax.plot(timestamps, times)
+            ax.plot(pings, times, color='green')
+            # Highlight timeouts in red
+            ax.scatter([p for p, t in zip(pings, times) if t == timeout], [timeout] * len([t for t in times if t == timeout]), color='red')
             ax.set_title(f"Ping response times to {host}")
-            ax.set_xlabel('Time (seconds)')
+            ax.set_xlabel('Number of Pings')
             ax.set_ylabel('Response Time (ms)')
             ax.relim()
             ax.autoscale_view()
 
-            update_stats(ax, times)
+            update_stats(ax, times, timeout)
 
         plt.pause(1)
 
