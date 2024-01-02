@@ -10,7 +10,8 @@ import numpy as np
 
 def ping(host, times, pings, timeout, interval):
     ping_count = 0
-    while True:
+    global running
+    while running:
         # Run the ping command with a timeout
         process = subprocess.Popen(["ping", host, "-c", "1", "-W", str(timeout)], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, error = process.communicate()
@@ -62,7 +63,13 @@ def update_stats(ax, times, timeout):
         stats_text = f'Average: {avg_time:.2f} ms\nMax: {max_time:.2f} ms\nMin: {min_time:.2f} ms\nStd Dev: {std_dev:.2f} ms\n% Timeout(>=): {percentage_greater_than_timeout:.2f}%\nSeq.N loss: {max_sequential_timeout}\n---settings---\n-W timeout: {timeout} ms\n-i interval: {interval} s'
         ax.text(0.3, 0.95, stats_text, transform=ax.transAxes, fontsize=10, verticalalignment='top', horizontalalignment='right', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
 
+def on_close(event):
+    global running
+    running = False
+    print('Close event')
+
 if __name__ == "__main__":
+    running = True
     parser = argparse.ArgumentParser(description='Ping a host and plot response time.')
     parser.add_argument('host', type=str, help='The host to ping')
     parser.add_argument('-W', '--timeout', type=int, default=150, help='Timeout in milliseconds for each ping request')
@@ -82,7 +89,9 @@ if __name__ == "__main__":
 
     plt.ion()
     fig, ax = plt.subplots()
-    while True:
+
+    fig.canvas.mpl_connect('close_event', on_close)
+    while running:
         if pings:
             ax.clear()
             ax.plot(pings, times, color='green')
@@ -97,4 +106,7 @@ if __name__ == "__main__":
             update_stats(ax, times, timeout)
 
         plt.pause(1)
+    print('Exiting ...')
+    ping_thread.join(2)
+    print('Waiting last ping finishes ...')
 
