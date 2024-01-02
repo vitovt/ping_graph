@@ -4,6 +4,8 @@
 
 The Network Ping Monitor is a Python-based tool designed to continuously monitor network latency by pinging a specified host and visualizing the response times in real-time. This tool is particularly useful for network administrators, IT professionals, and anyone needing to monitor and analyze the stability and performance of their network connections. The script provides a live graph of ping response times and includes various statistics like average, minimum, maximum, and current response times, as well as standard deviation, to help identify and analyze network issues.
 
+![Ping Monitor main window](screenshots/main_window.png?raw=true)
+
 ## Inspiration
 The tool was inspired by [mtr tool](https://github.com/traviscross/mtr) but it lacks graph visualisation of pings.
 
