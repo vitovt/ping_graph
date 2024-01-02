@@ -45,7 +45,11 @@ def update_stats(ax, times, timeout):
         min_time = np.min([time for time in times if time != timeout])
         std_dev = np.std([time for time in times if time != timeout])
 
-        stats_text = f'Average: {avg_time:.2f} ms\nMax: {max_time:.2f} ms\nMin: {min_time:.2f} ms\nStd Dev: {std_dev:.2f} ms\n---settings---\n-W timeout: {timeout} ms\n-i interval: {interval} s'
+        # Calculate the percentage of times greater than timeout
+        times_greater_than_timeout = len([time for time in times if time > timeout])
+        percentage_greater_than_timeout = (times_greater_than_timeout / len(times)) * 100
+
+        stats_text = f'Average: {avg_time:.2f} ms\nMax: {max_time:.2f} ms\nMin: {min_time:.2f} ms\nStd Dev: {std_dev:.2f} ms\n% Timeout(>=): {percentage_greater_than_timeout:.2f}%\n---settings---\n-W timeout: {timeout} ms\n-i interval: {interval} s'
         ax.text(0.3, 0.95, stats_text, transform=ax.transAxes, fontsize=10, verticalalignment='top', horizontalalignment='right', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
 
 if __name__ == "__main__":
