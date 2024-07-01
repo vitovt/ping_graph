@@ -34,6 +34,19 @@ The tool was inspired by [mtr tool](https://github.com/traviscross/mtr) but it l
 
 ## Usage
 
+After checking out the repository like
+
+```sh
+git clone git@github.com:vitovt/ping_graph.git
+cd ping_graph
+```
+
+and installing the required packages using pip like
+
+```sh
+pip install -r requirements.txt
+```
+
 Run the script from the command line, specifying the host to ping as an argument:
 
 ```sh
