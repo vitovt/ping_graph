@@ -35,7 +35,9 @@ cd ping_graph
 ```
 2. Ensure Python 3.x is installed on your system.
 3. Install required Python packages: `matplotlib` and `numpy`.
+
 OR
+
 3. install dependency from requrements.txt
 ```sh
 pip install -r requirements.txt
