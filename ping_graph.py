@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 import argparse
 import threading
 import numpy as np
+import socket
+import sys
 
 def ping(host, times, pings, timeout, interval):
     ping_count = 0
@@ -71,6 +73,14 @@ def on_close(event):
     running = False
     print('Close event')
 
+def resolve_hostname(host):
+    try:
+        ip = socket.gethostbyname(host)
+        return ip
+    except socket.gaierror as e:
+        print(f"Failed to resolve hostname {host} with error: {e}")
+        return None
+
 if __name__ == "__main__":
     running = True
     parser = argparse.ArgumentParser(description='Ping a host and plot response time.')
@@ -82,12 +92,17 @@ if __name__ == "__main__":
     host = args.host
     timeout = args.timeout
     interval = args.interval
+
+    resolved_host = resolve_hostname(host)
+    if not resolved_host:
+        sys.exit("Could not resolve host {host}. Exiting.")
+
     times = []
     pings = []
     start_time = tme.time()
 
     # Start the ping thread
-    ping_thread = threading.Thread(target=ping, args=(host, times, pings, timeout, interval))
+    ping_thread = threading.Thread(target=ping, args=(resolved_host, times, pings, timeout, interval))
     ping_thread.start()
 
     plt.ion()
