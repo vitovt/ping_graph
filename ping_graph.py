@@ -54,10 +54,14 @@ def ping(host, times, pings, timeout, dead_timeout, interval):
 def update_stats(ax, times, timeout, dead_timeout, start_time):
     if times:
         total_running_time = tme.time() - start_time
-        avg_time = np.mean([time for time in times if time != timeout and time != dead_timeout])
+        valid_times = [time for time in times if time != timeout and time != dead_timeout]
+        avg_time = np.mean(valid_times)
         max_time = np.max([time for time in times if time != dead_timeout])
-        min_time = np.min([time for time in times if time != timeout and time != dead_timeout])
-        std_dev = np.std([time for time in times if time != timeout and time != dead_timeout])
+        min_time = np.min(valid_times)
+        std_dev = np.std(valid_times)
+
+        # Calculate jitter as the average of the absolute differences between consecutive ping times
+        jitter = np.mean([abs(valid_times[i] - valid_times[i - 1]) for i in range(1, len(valid_times))])
 
         # Calculate the percentage of times greater than timeout
         times_greater_than_timeout = len([time for time in times if time > timeout])
@@ -93,6 +97,7 @@ def update_stats(ax, times, timeout, dead_timeout, start_time):
             f'Max: {max_time:.2f} ms\n'
             f'Min: {min_time:.2f} ms\n'
             f'Std Dev: {std_dev:.2f} ms\n'
+            f'Jitter: {jitter:.2f} ms\n'
             f'% Timeout(>): {percentage_greater_than_timeout:.2f}%\n'
             f'% Lost(=): {percentage_lost:.2f}%\n'
             f'total N:{len(times)}\n'

@@ -23,6 +23,7 @@ The Network Ping Monitor stands out by providing comprehensive statistics, inclu
 - **Dynamic Graph Plotting**: Live updates of a plot graph displaying ping response times.
 - **Auto-scaling Graph**: The graph auto-scales to accommodate varying response times.
 - **Network Statistics Display**: Shows current, average, maximum, and minimum response times, along with the standard deviation, network losts and delays.
+- **Vital parameters for VOIP applications**: Jitter and max number of sequental losts.
 - **Command-line Interface**: Easy to use command-line interface for setting up the host to be pinged.
 - **Multi-threaded Design**: Utilizes threading for simultaneous data collection and graph updating.
 
