@@ -38,7 +38,7 @@ cd ping_graph
 
 OR
 
-3. install dependency from requrements.txt
+3. Install dependencies from `requirements.txt`:
 ```sh
 pip install -r requirements.txt
 ```
@@ -52,6 +52,21 @@ python network_ping_monitor.py [host]
 ```
 
 Replace `[host]` with the hostname or IP address you want to monitor (e.g., `google.com`).
+
+### Arguments
+
+- `host`: The hostname or IP address to ping.
+
+#### Optional Arguments
+
+- `-W`, `--timeout`: Timeout in milliseconds for each ping request. Default is 150 milliseconds.
+- `-i`, `--interval`: Interval between pings in seconds. Default is 0.1 second.
+- `-D`, `--dead_timeout`: Execution timeout in milliseconds for each ping command. Default is 500 milliseconds. Maximum is 10,000 milliseconds. Must be greater than or equal to `timeout`.
+
+### How Timeouts Work
+
+- `-W`, `--timeout`: This is the timeout value for each individual ping request. If a ping response takes longer than this value, it is considered a timeout, and the response time is recorded as the timeout value.
+- `-D`, `--dead_timeout`: This is the maximum time allowed for the `ping` command to execute. If the `ping` command takes longer than this value, it is forcibly terminated, and the response time is recorded as the `dead_timeout` value. This ensures that the script does not hang indefinitely if the network is down or the host is unreachable.
 
 ## Example
 
