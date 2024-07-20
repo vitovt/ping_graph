@@ -12,13 +12,16 @@ import sys
 
 def ping(host, times, pings, timeout, interval):
     ping_count = 0
+    dead_timeout = 500
     global running
     while running:
         # Run the ping command with a timeout
-        process = subprocess.Popen(["ping", host, "-c", "1", "-W", str(timeout)], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        command = ["timeout", str(dead_timeout/1000), "ping", host, "-c", "1", "-W", str(timeout)]
+        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, error = process.communicate()
 
         ping_count += 1
+        # Ping returns successfully
         if process.returncode == 0:
             # Extract the time from the output
             match = re.search(r"time=(\d+.\d+) ms", out.decode('utf-8'))
@@ -26,17 +29,25 @@ def ping(host, times, pings, timeout, interval):
                 delay = float(match.group(1))
                 # Check if the delay exceeds the timeout
                 if delay > timeout:
-                    print(f"Response time {delay} ms exceeded timeout of {timeout} ms")
+                    print(f"Ping response time {delay} ms exceeded timeout of {timeout} ms")
                     # don't Treat LONG delay as timeout
                     times.append(delay)
                     pings.append(ping_count)
                 else:
                     times.append(delay)
                     pings.append(ping_count)
+        elif process.returncode == 124:
+            # Ping didn't returns in reasonable time
+            # 124 is the exit code for timeout command if it reaches the timeout
+            print(f"Ping to {host} ececution timed out after {timeout} seconds")
+            times.append(dead_timeout)
+            pings.append(ping_count)
         else:
-            print(f"Failed to ping {host} or request timed out")
+            # Ping didn't returns in reasonable time
+            # Other reason, like Network Unreachable, etc ...
+            print(f"Failed to ping {host} or request timed out with error: {error.decode('utf-8')}")
             # Mark lost ping as timeout value
-            times.append(timeout)
+            times.append(dead_timeout)
             pings.append(ping_count)
 
         tme.sleep(interval)
