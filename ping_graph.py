@@ -106,7 +106,7 @@ if __name__ == "__main__":
 
     resolved_host = resolve_hostname(host)
     if not resolved_host:
-        sys.exit("Could not resolve host {host}. Exiting.")
+        sys.exit(f"Could not resolve host {host}. Exiting.")
 
     times = []
     pings = []
