@@ -51,29 +51,35 @@ def ping(host, times, pings, timeout, dead_timeout, interval):
 
         tme.sleep(interval)
 
-def update_stats(ax, times, timeout, start_time):
+def update_stats(ax, times, timeout, dead_timeout, start_time):
     if times:
         total_running_time = tme.time() - start_time
-        avg_time = np.mean([time for time in times if time != timeout])
-        max_time = np.max(times)
-        min_time = np.min([time for time in times if time != timeout])
-        std_dev = np.std([time for time in times if time != timeout])
+        avg_time = np.mean([time for time in times if time != timeout and time != dead_timeout])
+        max_time = np.max([time for time in times if time != dead_timeout])
+        min_time = np.min([time for time in times if time != timeout and time != dead_timeout])
+        std_dev = np.std([time for time in times if time != timeout and time != dead_timeout])
 
         # Calculate the percentage of times greater than timeout
         times_greater_than_timeout = len([time for time in times if time > timeout])
         percentage_greater_than_timeout = (times_greater_than_timeout / len(times)) * 100
 
-        # Calculate the maximum sequential number of times >= timeout
-        max_sequential_timeout = 0
-        current_sequence = 0
-        for time in times:
-            if time >= timeout:
-                current_sequence += 1
-                max_sequential_timeout = max(max_sequential_timeout, current_sequence)
-            else:
-                current_sequence = 0
+        # Calculate the percentage of lost packets (where time == dead_timeout)
+        times_lost = len([time for time in times if time == dead_timeout])
+        percentage_lost = (times_lost / len(times)) * 100
 
-        stats_text = f'Average: {avg_time:.2f} ms\nMax: {max_time:.2f} ms\nMin: {min_time:.2f} ms\nStd Dev: {std_dev:.2f} ms\n% Timeout(>=): {percentage_greater_than_timeout:.2f}%\nSeq.N loss: {max_sequential_timeout}\n---settings---\n-W timeout: {timeout} ms\n-i interval: {interval} s'
+        # Calculate the maximum sequential number of times >= timeout
+        total = 0
+        total_timeout = 0
+        total_lost = 0
+        for time in times:
+            if time >= timeout and time != dead_timeout:
+                total_timeout += 1
+            elif time == dead_timeout:
+                total_lost += 1
+            else:
+                total += 1
+
+        stats_text = f'Average: {avg_time:.2f} ms\nMax: {max_time:.2f} ms\nMin: {min_time:.2f} ms\nStd Dev: {std_dev:.2f} ms\n% Timeout(>): {percentage_greater_than_timeout:.2f}%\n% Lost(=): {percentage_lost:.2f}%\ntotal N:{len(times)}\nN timeout: {total_timeout}\nN lost: {total_lost}\n---settings---\n-W timeout: {timeout} ms\n-D: {dead_timeout}ms\n-i interval: {interval} s'
         stats_text += f'\n\nRunTime: {total_running_time:.2f} s\n\nPress "q" to quit'
         ax.text(0.3, 0.95, stats_text, transform=ax.transAxes, fontsize=10, verticalalignment='top', horizontalalignment='right', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
 
@@ -146,7 +152,7 @@ if __name__ == "__main__":
             ax.relim()
             ax.autoscale_view()
 
-            update_stats(ax, times, timeout, start_time)
+            update_stats(ax, times, timeout, dead_timeout, start_time)
 
         plt.pause(1)
     print('Exiting ...')
