@@ -29,8 +29,17 @@ The tool was inspired by [mtr tool](https://github.com/traviscross/mtr) but it l
 ## Installation
 
 1. Clone the repository or download the script.
+```sh
+git clone git@github.com:vitovt/ping_graph.git
+cd ping_graph
+```
 2. Ensure Python 3.x is installed on your system.
 3. Install required Python packages: `matplotlib` and `numpy`.
+OR
+3. install dependency from requrements.txt
+```sh
+pip install -r requirements.txt
+```
 
 ## Usage
 
