@@ -55,13 +55,16 @@ def update_stats(ax, times, timeout, dead_timeout, start_time):
     if times:
         total_running_time = tme.time() - start_time
         valid_times = [time for time in times if time != timeout and time != dead_timeout]
-        avg_time = np.mean(valid_times)
         max_time = np.max([time for time in times if time != dead_timeout])
         min_time = np.min(valid_times)
         std_dev = np.std(valid_times)
 
-        # Calculate jitter as the average of the absolute differences between consecutive ping times
-        jitter = np.mean([abs(valid_times[i] - valid_times[i - 1]) for i in range(1, len(valid_times))])
+        if valid_times:
+            avg_time = np.mean(valid_times)
+            # Calculate jitter as the average of the absolute differences between consecutive ping times
+            jitter = np.mean([abs(valid_times[i] - valid_times[i - 1]) for i in range(1, len(valid_times))])
+        else:
+            avg_time = jitter = 0
 
         # Calculate the percentage of times greater than timeout
         times_greater_than_timeout = len([time for time in times if time > timeout])
