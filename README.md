@@ -11,12 +11,18 @@ The Network Ping Monitor is a Python-based tool designed to continuously monitor
 ## Inspiration
 The tool was inspired by [mtr tool](https://github.com/traviscross/mtr) but it lacks graph visualisation of pings.
 
+I did some research, tried to find ready tool. Here is [short summary of what I've found](COMPETITORS.md).
+
+But no one solution I've found satisfied my requirements. So I wrote my own solution.
+
+The Network Ping Monitor stands out by providing comprehensive statistics, including **timeouts** and packet **loss**, along with a dynamic, real-time graphing capability within a GUI. This makes it particularly user-friendly and informative for monitoring and analyzing network performance.
+
 ## Features
 
 - **Real-time Ping Monitoring**: Continuously pings a specified host and records response times.
 - **Dynamic Graph Plotting**: Live updates of a plot graph displaying ping response times.
 - **Auto-scaling Graph**: The graph auto-scales to accommodate varying response times.
-- **Network Statistics Display**: Shows current, average, maximum, and minimum response times, along with the standard deviation.
+- **Network Statistics Display**: Shows current, average, maximum, and minimum response times, along with the standard deviation, network losts and delays.
 - **Command-line Interface**: Easy to use command-line interface for setting up the host to be pinged.
 - **Multi-threaded Design**: Utilizes threading for simultaneous data collection and graph updating.
 
