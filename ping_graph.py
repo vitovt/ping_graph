@@ -128,7 +128,18 @@ if __name__ == "__main__":
             ax.clear()
             ax.plot(pings, times, color='green')
             # Highlight timeouts in red
-            ax.scatter([p for p, t in zip(pings, times) if t >= timeout], [timeout] * len([t for t in times if t >= timeout]), color='red')
+            ax.scatter(
+                [p for p, t in zip(pings, times) if t >= timeout and t != dead_timeout],
+                [timeout] * len([t for t in times if t >= timeout and t != dead_timeout]),
+                color='red'
+            )
+
+            # Highlight dead timeouts in another color
+            ax.scatter(
+                [p for p, t in zip(pings, times) if t == dead_timeout],
+                [dead_timeout] * len([t for t in times if t == dead_timeout]),
+                color='magenta'
+            )
             ax.set_title(f"Ping response times to {host}")
             ax.set_xlabel('Number of Pings')
             ax.set_ylabel('Response Time (ms)')
