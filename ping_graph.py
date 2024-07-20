@@ -55,25 +55,29 @@ def ping(host, times, pings, timeout, dead_timeout, interval):
 def update_stats(ax, times, timeout, dead_timeout, start_time):
     if times:
         total_running_time = tme.time() - start_time
-        valid_times = [time for time in times if time != timeout and time != dead_timeout]
-        max_time = np.max([time for time in times if time != dead_timeout])
-        min_time = np.min(valid_times)
-        std_dev = np.std(valid_times)
+        valid_times = [time for time in times if time != dead_timeout]
 
         if valid_times:
             avg_time = np.mean(valid_times)
+            min_time = np.min(valid_times)
+            std_dev = np.std(valid_times)
             # Calculate jitter as the average of the absolute differences between consecutive ping times
-            jitter = np.mean([abs(valid_times[i] - valid_times[i - 1]) for i in range(1, len(valid_times))])
+            if len(valid_times) > 1:
+                jitter = np.mean([abs(valid_times[i] - valid_times[i - 1]) for i in range(1, len(valid_times))])
+            else:
+                jitter = 0
         else:
-            avg_time = jitter = 0
+            avg_time = min_time = std_dev = jitter = 0
+
+        max_time = np.max(valid_times) if valid_times else 0
 
         # Calculate the percentage of times greater than timeout
         times_greater_than_timeout = len([time for time in times if time > timeout])
-        percentage_greater_than_timeout = (times_greater_than_timeout / len(times)) * 100
+        percentage_greater_than_timeout = (times_greater_than_timeout / len(times)) * 100 if times else 0
 
         # Calculate the percentage of lost packets (where time == dead_timeout)
         times_lost = len([time for time in times if time == dead_timeout])
-        percentage_lost = (times_lost / len(times)) * 100
+        percentage_lost = (times_lost / len(times)) * 100 if times else 0
 
         # Calculate the maximum sequential number of times >= timeout
         total = 0
