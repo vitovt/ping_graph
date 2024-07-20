@@ -8,6 +8,8 @@ The Network Ping Monitor is a Python-based tool designed to continuously monitor
 
 ![Ping Monitor main window](screenshots/screenshot2.png?raw=true)
 
+![Network Lost vizualization](screenshots/screenshot_with_losts.png?raw=true)
+
 ## Inspiration
 The tool was inspired by [mtr tool](https://github.com/traviscross/mtr) but it lacks graph visualisation of pings.
 
