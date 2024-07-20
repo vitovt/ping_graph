@@ -71,13 +71,22 @@ def update_stats(ax, times, timeout, dead_timeout, start_time):
         total = 0
         total_timeout = 0
         total_lost = 0
+        max_sequential_timeout = 0
+        current_sequence_timeout = 0
         for time in times:
             if time >= timeout and time != dead_timeout:
                 total_timeout += 1
+                current_sequence_timeout += 1
             elif time == dead_timeout:
                 total_lost += 1
+                current_sequence_timeout += 1
             else:
                 total += 1
+                current_sequence_timeout = 0
+
+            # Calculate the maximum sequential number of times >= timeout
+            if current_sequence_timeout > max_sequential_timeout:
+                max_sequential_timeout = current_sequence_timeout
 
         stats_text = (
             f'Average: {avg_time:.2f} ms\n'
@@ -88,6 +97,7 @@ def update_stats(ax, times, timeout, dead_timeout, start_time):
             f'% Lost(=): {percentage_lost:.2f}%\n'
             f'total N:{len(times)}\n'
             f'N timeout: {total_timeout}\n'
+            f'Max N SEQ tim.: {max_sequential_timeout}\n'
             f'N lost: {total_lost}\n'
             f'---settings---\n'
             f'-W timeout: {timeout} ms\n'
