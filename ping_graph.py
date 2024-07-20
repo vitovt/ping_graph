@@ -10,9 +10,8 @@ import numpy as np
 import socket
 import sys
 
-def ping(host, times, pings, timeout, interval):
+def ping(host, times, pings, timeout, dead_timeout, interval):
     ping_count = 0
-    dead_timeout = 500
     global running
     while running:
         # Run the ping command with a timeout
@@ -51,7 +50,6 @@ def ping(host, times, pings, timeout, interval):
             pings.append(ping_count)
 
         tme.sleep(interval)
-
 
 def update_stats(ax, times, timeout, start_time):
     if times:
@@ -94,15 +92,20 @@ def resolve_hostname(host):
 
 if __name__ == "__main__":
     running = True
-    parser = argparse.ArgumentParser(description='Ping a host and plot response time.')
+    parser = argparse.ArgumentParser(description='Ping a host and plot response time.', formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('host', type=str, help='The host to ping')
     parser.add_argument('-W', '--timeout', type=int, default=150, help='Timeout in milliseconds for each ping request')
     parser.add_argument('-i', '--interval', type=float, default=0.1, help='Interval between pings in seconds. Default is 0.1 second.')
+    parser.add_argument('-D', '--dead_timeout', type=float, default=500, help='Execution timeout in miliseconds for each ping command.\nDefault is 500 miliseconds. Maximum is 10 000 miliseconds.\nMust be imore or equal of timeoout')
+
     args = parser.parse_args()
 
     host = args.host
     timeout = args.timeout
     interval = args.interval
+    dead_timeout = args.dead_timeout
+    if dead_timeout > 10000 or dead_timeout < timeout:
+        sys.exit(f"Dead timeout (-D) value {dead_timeout} out of range. Exiting.")
 
     resolved_host = resolve_hostname(host)
     if not resolved_host:
@@ -113,7 +116,7 @@ if __name__ == "__main__":
     start_time = tme.time()
 
     # Start the ping thread
-    ping_thread = threading.Thread(target=ping, args=(resolved_host, times, pings, timeout, interval))
+    ping_thread = threading.Thread(target=ping, args=(resolved_host, times, pings, timeout, dead_timeout, interval))
     ping_thread.start()
 
     plt.ion()
