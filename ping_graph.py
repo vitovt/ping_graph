@@ -15,7 +15,7 @@ def ping(host, times, pings, timeout, dead_timeout, interval):
     global running
     while running:
         # Run the ping command with a timeout
-        command = ["timeout", str(dead_timeout/1000), "ping", host, "-c", "1", "-W", str(timeout)]
+        command = ["timeout", str(dead_timeout / 1000), "ping", host, "-c", "1", "-W", str(timeout)]
         process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, error = process.communicate()
 
@@ -36,9 +36,9 @@ def ping(host, times, pings, timeout, dead_timeout, interval):
                     times.append(delay)
                     pings.append(ping_count)
         elif process.returncode == 124:
-            # Ping didn't returns in reasonable time
+            # Ping didn't return in reasonable time
             # 124 is the exit code for timeout command if it reaches the timeout
-            print(f"Ping to {host} execution timed out after {timeout} seconds")
+            print(f"Ping to {host} execution timed out after {timeout} milliseconds")
             times.append(dead_timeout)
             pings.append(ping_count)
         else:
@@ -74,7 +74,7 @@ def update_stats(ax, times, timeout, start_time):
                 current_sequence = 0
 
         stats_text = f'Average: {avg_time:.2f} ms\nMax: {max_time:.2f} ms\nMin: {min_time:.2f} ms\nStd Dev: {std_dev:.2f} ms\n% Timeout(>=): {percentage_greater_than_timeout:.2f}%\nSeq.N loss: {max_sequential_timeout}\n---settings---\n-W timeout: {timeout} ms\n-i interval: {interval} s'
-        stats_text += f'\n\nRunTime: {total_running_time:.2f} s'
+        stats_text += f'\n\nRunTime: {total_running_time:.2f} s\n\nPress "q" to quit'
         ax.text(0.3, 0.95, stats_text, transform=ax.transAxes, fontsize=10, verticalalignment='top', horizontalalignment='right', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
 
 def on_close(event):
@@ -96,7 +96,7 @@ if __name__ == "__main__":
     parser.add_argument('host', type=str, help='The host to ping')
     parser.add_argument('-W', '--timeout', type=int, default=150, help='Timeout in milliseconds for each ping request')
     parser.add_argument('-i', '--interval', type=float, default=0.1, help='Interval between pings in seconds. Default is 0.1 second.')
-    parser.add_argument('-D', '--dead_timeout', type=float, default=500, help='Execution timeout in miliseconds for each ping command.\nDefault is 500 miliseconds. Maximum is 10 000 miliseconds.\nMust be imore or equal of timeoout')
+    parser.add_argument('-D', '--dead_timeout', type=float, default=500, help='Execution timeout in milliseconds for each ping command.\nDefault is 500 milliseconds.\nMaximum is 10,000 milliseconds.\nMust be more or equal to timeout')
 
     args = parser.parse_args()
 
