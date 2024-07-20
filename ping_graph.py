@@ -4,6 +4,7 @@ import subprocess
 import re
 import time as tme
 import matplotlib.pyplot as plt
+from matplotlib.widgets import Button
 import argparse
 import threading
 import numpy as np
@@ -129,8 +130,15 @@ def resolve_hostname(host):
         print(f"Failed to resolve hostname {host} with error: {e}")
         return None
 
+def toggle_scale(event):
+    global current_scale
+    current_scale = 'log' if current_scale == 'linear' else 'linear'
+    ax.set_yscale(current_scale)
+    plt.draw()
+
 if __name__ == "__main__":
     running = True
+    current_scale = 'linear'
     parser = argparse.ArgumentParser(description='Ping a host and plot response time.', formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('host', type=str, help='The host to ping')
     parser.add_argument('-W', '--timeout', type=int, default=150, help='Timeout in milliseconds for each ping request')
@@ -162,6 +170,12 @@ if __name__ == "__main__":
     fig, ax = plt.subplots()
 
     fig.canvas.mpl_connect('close_event', on_close)
+
+    # Create a button to toggle the Y scale
+    ax_button = plt.axes([0.05, 0.01, 0.07, 0.075])
+    btn = Button(ax_button, 'Log. Y')
+    btn.on_clicked(toggle_scale)
+
     while running:
         if pings:
             ax.clear()
@@ -179,6 +193,7 @@ if __name__ == "__main__":
                 [dead_timeout] * len([t for t in times if t == dead_timeout]),
                 color='magenta'
             )
+            ax.set_yscale(current_scale)
             ax.set_title(f"Ping response times to {host}")
             ax.set_xlabel('Number of Pings')
             ax.set_ylabel('Response Time (ms)')
