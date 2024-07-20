@@ -39,11 +39,11 @@ def ping(host, times, pings, timeout, interval):
         elif process.returncode == 124:
             # Ping didn't returns in reasonable time
             # 124 is the exit code for timeout command if it reaches the timeout
-            print(f"Ping to {host} ececution timed out after {timeout} seconds")
+            print(f"Ping to {host} execution timed out after {timeout} seconds")
             times.append(dead_timeout)
             pings.append(ping_count)
         else:
-            # Ping didn't returns in reasonable time
+            # Ping didn't return in reasonable time
             # Other reason, like Network Unreachable, etc ...
             print(f"Failed to ping {host} or request timed out with error: {error.decode('utf-8')}")
             # Mark lost ping as timeout value
