@@ -38,7 +38,7 @@ def ping(host, times, pings, timeout, dead_timeout, interval):
         elif process.returncode == 124:
             # Ping didn't return in reasonable time
             # 124 is the exit code for timeout command if it reaches the timeout
-            print(f"Ping to {host} execution timed out after {timeout} milliseconds")
+            print(f"Ping to {host} execution timed out after {dead_timeout} milliseconds")
             times.append(dead_timeout)
             pings.append(ping_count)
         else:
@@ -79,8 +79,23 @@ def update_stats(ax, times, timeout, dead_timeout, start_time):
             else:
                 total += 1
 
-        stats_text = f'Average: {avg_time:.2f} ms\nMax: {max_time:.2f} ms\nMin: {min_time:.2f} ms\nStd Dev: {std_dev:.2f} ms\n% Timeout(>): {percentage_greater_than_timeout:.2f}%\n% Lost(=): {percentage_lost:.2f}%\ntotal N:{len(times)}\nN timeout: {total_timeout}\nN lost: {total_lost}\n---settings---\n-W timeout: {timeout} ms\n-D: {dead_timeout}ms\n-i interval: {interval} s'
-        stats_text += f'\n\nRunTime: {total_running_time:.2f} s\n\nPress "q" to quit'
+        stats_text = (
+            f'Average: {avg_time:.2f} ms\n'
+            f'Max: {max_time:.2f} ms\n'
+            f'Min: {min_time:.2f} ms\n'
+            f'Std Dev: {std_dev:.2f} ms\n'
+            f'% Timeout(>): {percentage_greater_than_timeout:.2f}%\n'
+            f'% Lost(=): {percentage_lost:.2f}%\n'
+            f'total N:{len(times)}\n'
+            f'N timeout: {total_timeout}\n'
+            f'N lost: {total_lost}\n'
+            f'---settings---\n'
+            f'-W timeout: {timeout} ms\n'
+            f'-D: {dead_timeout}ms\n'
+            f'-i interval: {interval} s\n\n'
+            f'RunTime: {total_running_time:.2f} s\n\n'
+            f'Press "q" to quit'
+        )
         ax.text(0.3, 0.95, stats_text, transform=ax.transAxes, fontsize=10, verticalalignment='top', horizontalalignment='right', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
 
 def on_close(event):
