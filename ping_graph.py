@@ -16,7 +16,7 @@ def ping(host, times, pings, timeout, dead_timeout, interval):
     global running
     while running:
         # Run the ping command with a timeout
-        command = ["timeout", str(dead_timeout / 1000), "ping", host, "-c", "1", "-W", str(timeout)]
+        command = ["timeout", str(dead_timeout / 1000), "ping6" if args.ipv6 else "ping", host, "-c", "1", "-W", str(timeout)]
         process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, error = process.communicate()
 
@@ -126,10 +126,10 @@ def on_close(event):
     running = False
     print('Close event')
 
-def resolve_hostname(host):
+def resolve_hostname(host, use_ipv6):
     try:
-        ip = socket.gethostbyname(host)
-        return ip
+        addrinfo = socket.getaddrinfo(host, None, socket.AF_INET6 if use_ipv6 else socket.AF_INET)
+        return addrinfo[0][4][0]
     except socket.gaierror as e:
         print(f"Failed to resolve hostname {host} with error: {e}")
         return None
@@ -148,6 +148,7 @@ if __name__ == "__main__":
     parser.add_argument('-W', '--timeout', type=int, default=150, help='Timeout in milliseconds for each ping request')
     parser.add_argument('-i', '--interval', type=float, default=0.1, help='Interval between pings in seconds. Default is 0.1 second.')
     parser.add_argument('-D', '--dead_timeout', type=float, default=500, help='Execution timeout in milliseconds for each ping command.\nDefault is 500 milliseconds.\nMaximum is 10,000 milliseconds.\nMust be more or equal to timeout')
+    parser.add_argument('-6', '--ipv6', action='store_true', help='Use IPv6 for the ping')
 
     args = parser.parse_args()
 
@@ -158,7 +159,7 @@ if __name__ == "__main__":
     if dead_timeout > 10000 or dead_timeout < timeout:
         sys.exit(f"Dead timeout (-D) value {dead_timeout} out of range. Exiting.")
 
-    resolved_host = resolve_hostname(host)
+    resolved_host = resolve_hostname(host, args.ipv6)
     if not resolved_host:
         sys.exit(f"Could not resolve host {host}. Exiting.")
 

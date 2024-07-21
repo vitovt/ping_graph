@@ -28,6 +28,7 @@ The Network Ping Monitor stands out by providing comprehensive statistics, inclu
 - **Vital parameters for VOIP applications**: Jitter and max number of sequental losts.
 - **Command-line Interface**: Easy to use command-line interface for setting up the host to be pinged.
 - **Multi-threaded Design**: Utilizes threading for simultaneous data collection and graph updating.
+- **IPv6 support**: Supports IPv6 ip's and domains.
 
 ## Requirements
 
@@ -71,6 +72,7 @@ Replace `[host]` with the hostname or IP address you want to monitor (e.g., `goo
 - `-W`, `--timeout`: Timeout in milliseconds for each ping request. Default is 150 milliseconds.
 - `-i`, `--interval`: Interval between pings in seconds. Default is 0.1 second.
 - `-D`, `--dead_timeout`: Execution timeout in milliseconds for each ping command. Default is 500 milliseconds. Maximum is 10,000 milliseconds. Must be greater than or equal to `timeout`.
+- `-6`, `--ipv6`: Use IPv6 address for the ping.
 
 ### How Timeouts Work
 
