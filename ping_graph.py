@@ -199,7 +199,7 @@ if __name__ == "__main__":
                 color='magenta'
             )
             ax.set_yscale(current_scale)
-            ax.set_title(f"Ping response times to {host}")
+            ax.set_title(f"Ping response times to {'IPv6 ' if args.ipv6 else 'IPv4 '}{host}")
             ax.set_xlabel('Number of Pings')
             ax.set_ylabel('Response Time (ms)')
             ax.relim()
