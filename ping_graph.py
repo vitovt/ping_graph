@@ -10,50 +10,111 @@ import threading
 import numpy as np
 import socket
 import sys
- 
+import platform
+
 # Synchronization primitives for thread-safe data access and clean shutdown
 data_lock = threading.Lock()
 stop_event = threading.Event()
 
+TIME_RE = re.compile(r"time(?P<cmp>[=<])\s*(?P<val>\d+(?:\.\d+)?)\s*ms", re.IGNORECASE)
+
+def build_ping_cmd(host: str, per_packet_timeout_ms: int, use_ipv6: bool) -> list[str]:
+    """
+    Return a platform-appropriate ping command that sends exactly 1 probe and
+    uses per-packet timeout close to `per_packet_timeout_ms` when supported.
+    """
+    os_name = platform.system()
+    ip_flag = "-6" if use_ipv6 else "-4"
+
+    if os_name == "Windows":
+        # Windows ping:
+        #   -n 1  : one echo
+        #   -w ms : per-reply timeout in milliseconds
+        #   -6/-4 : force IP family
+        return ["ping", ip_flag, "-n", "1", "-w", str(int(per_packet_timeout_ms)), host]
+
+    elif os_name == "Darwin":
+        # macOS/BSD ping:
+        #   -c 1  : one echo
+        #   -W ms : per-reply timeout in *milliseconds* (BSD)
+        #   -6/-4 : force IP family
+        return ["ping", ip_flag, "-c", "1", "-W", str(int(per_packet_timeout_ms)), host]
+
+    else:
+        # Linux (iputils ping):
+        #   -c 1     : one echo
+        #   -W secs  : per-reply timeout in *seconds* (float allowed)
+        #   -6/-4    : force IP family
+        secs = max(0.001, per_packet_timeout_ms / 1000.0)
+        return ["ping", ip_flag, "-c", "1", "-W", f"{secs:.3f}", host]
+
+def parse_ping_time(output_text: str) -> float | None:
+    """
+    Parse RTT from ping output in milliseconds.
+    Handles 'time=12.3 ms', 'time=12ms', and 'time<1ms'.
+    Returns None if it cannot parse.
+    """
+    m = TIME_RE.search(output_text)
+    if not m:
+        return None
+    val = float(m.group("val"))
+    # If comparator was '<', we conservatively use the reported bound (e.g., 1ms).
+    # You could choose val/2.0 if you'd rather approximate.
+    return val
+
 def ping(host, times, pings, timeout, dead_timeout, interval):
     ping_count = 0
     global stop_event, data_lock
+
     while not stop_event.is_set():
         # Run the ping command with a timeout
-        command = ["timeout", str(dead_timeout / 1000), "ping6" if args.ipv6 else "ping", host, "-c", "1", "-W", str(timeout)]
-        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        out, error = process.communicate()
+        cmd = build_ping_cmd(host, per_packet_timeout_ms=int(dead_timeout), use_ipv6=args.ipv6)
+        try:
+            # Enforce a hard deadline for the whole ping invocation (cross-platform)
+            process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            out, error = process.communicate(timeout=max(0.001, dead_timeout / 1000.0))
+            rc = process.returncode
+        except subprocess.TimeoutExpired:
+            # If the process exceeded dead_timeout, kill it and mark as lost
+            try:
+                process.kill()
+            except Exception:
+                pass
+            out, error = process.communicate()
+            rc = 124  # synthetic 'timeout' code to mirror prior logic
 
         ping_count += 1
-        # Ping returns successfully
-        if process.returncode == 0:
-            # Extract the time from the output
-            match = re.search(r"time=(\d+.\d+) ms", out.decode('utf-8'))
-            if match:
-                delay = float(match.group(1))
-                # Check if the delay exceeds the timeout
+        out_text = (out or b"").decode("utf-8", errors="ignore")
+        err_text = (error or b"").decode("utf-8", errors="ignore")
+
+        if rc == 0:
+            delay = parse_ping_time(out_text)
+            if delay is not None:
                 if delay > timeout:
                     print(f"Ping response time {delay} ms exceeded timeout of {timeout} ms")
                     # don't Treat LONG delay as timeout
-                    with data_lock:
-                        times.append(delay)
-                        pings.append(ping_count)
-                else:
-                    with data_lock:
-                        times.append(delay)
-                        pings.append(ping_count)
-        elif process.returncode == 124:
-            # Ping didn't return in reasonable time
-            # 124 is the exit code for timeout command if it reaches the timeout
+                with data_lock:
+                    times.append(delay)
+                    pings.append(ping_count)
+            else:
+                # Successful return code but couldn't parse RTT → treat as lost/timeout ceiling
+                print("Ping succeeded but RTT could not be parsed; recording as dead_timeout.")
+                with data_lock:
+                    times.append(dead_timeout)
+                    pings.append(ping_count)
+
+        elif rc == 124:
+            # Our hard deadline expired
             print(f"Ping to {host} execution timed out after {dead_timeout} milliseconds")
             with data_lock:
                 times.append(dead_timeout)
                 pings.append(ping_count)
+
         else:
-            # Ping didn't return in reasonable time
-            # Other reason, like Network Unreachable, etc ...
-            print(f"Failed to ping {host} or request timed out with error: {error.decode('utf-8')}")
-            # Mark lost ping as timeout value
+            # Non-zero exit (host unreachable, no route, etc.)
+            # Record as lost with dead_timeout marker
+            msg = err_text.strip() or out_text.strip() or f"exit code {rc}"
+            print(f"Failed to ping {host} or request timed out with error: {msg}")
             with data_lock:
                 times.append(dead_timeout)
                 pings.append(ping_count)
@@ -93,11 +154,11 @@ def update_stats(ax, times, timeout, dead_timeout, start_time):
         total_lost = 0
         max_sequential_timeout = 0
         current_sequence_timeout = 0
-        for time in times:
-            if time >= timeout and time != dead_timeout:
+        for time_v in times:
+            if time_v >= timeout and time_v != dead_timeout:
                 total_timeout += 1
                 current_sequence_timeout += 1
-            elif time == dead_timeout:
+            elif time_v == dead_timeout:
                 total_lost += 1
                 current_sequence_timeout += 1
             else:
@@ -176,6 +237,7 @@ if __name__ == "__main__":
 
     # Start the ping thread
     ping_thread = threading.Thread(target=ping, args=(resolved_host, times, pings, timeout, dead_timeout, interval))
+    ping_thread.daemon = True
     ping_thread.start()
 
     plt.ion()
@@ -198,26 +260,28 @@ if __name__ == "__main__":
 
                 ax.clear()
                 ax.plot(pings_snapshot, times_snapshot, color='green')
-            # Highlight timeouts in red
+
+                # Highlight timeouts in red
                 ax.scatter(
                     [p for p, t in zip(pings_snapshot, times_snapshot) if t >= timeout and t != dead_timeout],
                     [timeout] * len([t for t in times_snapshot if t >= timeout and t != dead_timeout]),
                     color='red'
                 )
-
-            # Highlight dead timeouts in another color
+                # Highlight dead timeouts in magenta
                 ax.scatter(
                     [p for p, t in zip(pings_snapshot, times_snapshot) if t == dead_timeout],
                     [dead_timeout] * len([t for t in times_snapshot if t == dead_timeout]),
                     color='magenta'
                 )
+
             ax.set_yscale(current_scale)
             ax.set_title(f"Ping response times to {'IPv6 ' if args.ipv6 else 'IPv4 '}{host}")
             ax.set_xlabel('Number of Pings')
             ax.set_ylabel('Response Time (ms)')
             ax.relim()
             ax.autoscale_view()
-            update_stats(ax, times_snapshot, timeout, dead_timeout, start_time)
+
+            update_stats(ax, times_snapshot if pings else [], timeout, dead_timeout, start_time)
 
             plt.pause(0.2)
     except KeyboardInterrupt:
