@@ -213,9 +213,11 @@ if __name__ == "__main__":
     current_scale = 'linear'
     parser = argparse.ArgumentParser(description='Ping a host and plot response time.', formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('host', type=str, help='The host to ping')
-    parser.add_argument('-W', '--timeout', type=int, default=150, help='Timeout in milliseconds for each ping request')
+    parser.add_argument('-W', '--timeout', type=int, default=150, help='Classification threshold in milliseconds for marking a reply as slow')
     parser.add_argument('-i', '--interval', type=float, default=0.1, help='Interval between pings in seconds. Default is 0.1 second.')
-    parser.add_argument('-D', '--dead_timeout', type=float, default=500, help='Execution timeout in milliseconds for each ping command.\nDefault is 500 milliseconds.\nMaximum is 10,000 milliseconds.\nMust be more or equal to timeout')
+    parser.add_argument('-D', '--dead_timeout', type=float, default=500, help=('Hard deadline in milliseconds per ping invocation. '
+                              'Used to kill the ping process if it hangs. '
+                              'Default is 500 ms; max is 10,000 ms; must be >= --timeout'))
     parser.add_argument('-6', '--ipv6', action='store_true', help='Use IPv6 for the ping')
 
     args = parser.parse_args()
