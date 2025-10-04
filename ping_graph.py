@@ -10,11 +10,15 @@ import threading
 import numpy as np
 import socket
 import sys
+ 
+# Synchronization primitives for thread-safe data access and clean shutdown
+data_lock = threading.Lock()
+stop_event = threading.Event()
 
 def ping(host, times, pings, timeout, dead_timeout, interval):
     ping_count = 0
-    global running
-    while running:
+    global stop_event, data_lock
+    while not stop_event.is_set():
         # Run the ping command with a timeout
         command = ["timeout", str(dead_timeout / 1000), "ping6" if args.ipv6 else "ping", host, "-c", "1", "-W", str(timeout)]
         process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -31,24 +35,28 @@ def ping(host, times, pings, timeout, dead_timeout, interval):
                 if delay > timeout:
                     print(f"Ping response time {delay} ms exceeded timeout of {timeout} ms")
                     # don't Treat LONG delay as timeout
-                    times.append(delay)
-                    pings.append(ping_count)
+                    with data_lock:
+                        times.append(delay)
+                        pings.append(ping_count)
                 else:
-                    times.append(delay)
-                    pings.append(ping_count)
+                    with data_lock:
+                        times.append(delay)
+                        pings.append(ping_count)
         elif process.returncode == 124:
             # Ping didn't return in reasonable time
             # 124 is the exit code for timeout command if it reaches the timeout
             print(f"Ping to {host} execution timed out after {dead_timeout} milliseconds")
-            times.append(dead_timeout)
-            pings.append(ping_count)
+            with data_lock:
+                times.append(dead_timeout)
+                pings.append(ping_count)
         else:
             # Ping didn't return in reasonable time
             # Other reason, like Network Unreachable, etc ...
             print(f"Failed to ping {host} or request timed out with error: {error.decode('utf-8')}")
             # Mark lost ping as timeout value
-            times.append(dead_timeout)
-            pings.append(ping_count)
+            with data_lock:
+                times.append(dead_timeout)
+                pings.append(ping_count)
 
         tme.sleep(interval)
 
@@ -122,8 +130,8 @@ def update_stats(ax, times, timeout, dead_timeout, start_time):
         ax.text(0.3, 0.95, stats_text, transform=ax.transAxes, fontsize=10, verticalalignment='top', horizontalalignment='right', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
 
 def on_close(event):
-    global running
-    running = False
+    global stop_event
+    stop_event.set()
     print('Close event')
 
 def resolve_hostname(host, use_ipv6):
@@ -141,7 +149,6 @@ def toggle_scale(event):
     plt.draw()
 
 if __name__ == "__main__":
-    running = True
     current_scale = 'linear'
     parser = argparse.ArgumentParser(description='Ping a host and plot response time.', formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('host', type=str, help='The host to ping')
@@ -181,33 +188,42 @@ if __name__ == "__main__":
     btn = Button(ax_button, 'Log. Y')
     btn.on_clicked(toggle_scale)
 
-    while running:
-        if pings:
-            ax.clear()
-            ax.plot(pings, times, color='green')
+    try:
+        while not stop_event.is_set():
+            if pings:
+                # Take thread-safe snapshots for plotting and stats
+                with data_lock:
+                    pings_snapshot = list(pings)
+                    times_snapshot = list(times)
+
+                ax.clear()
+                ax.plot(pings_snapshot, times_snapshot, color='green')
             # Highlight timeouts in red
-            ax.scatter(
-                [p for p, t in zip(pings, times) if t >= timeout and t != dead_timeout],
-                [timeout] * len([t for t in times if t >= timeout and t != dead_timeout]),
-                color='red'
-            )
+                ax.scatter(
+                    [p for p, t in zip(pings_snapshot, times_snapshot) if t >= timeout and t != dead_timeout],
+                    [timeout] * len([t for t in times_snapshot if t >= timeout and t != dead_timeout]),
+                    color='red'
+                )
 
             # Highlight dead timeouts in another color
-            ax.scatter(
-                [p for p, t in zip(pings, times) if t == dead_timeout],
-                [dead_timeout] * len([t for t in times if t == dead_timeout]),
-                color='magenta'
-            )
+                ax.scatter(
+                    [p for p, t in zip(pings_snapshot, times_snapshot) if t == dead_timeout],
+                    [dead_timeout] * len([t for t in times_snapshot if t == dead_timeout]),
+                    color='magenta'
+                )
             ax.set_yscale(current_scale)
             ax.set_title(f"Ping response times to {'IPv6 ' if args.ipv6 else 'IPv4 '}{host}")
             ax.set_xlabel('Number of Pings')
             ax.set_ylabel('Response Time (ms)')
             ax.relim()
             ax.autoscale_view()
+            update_stats(ax, times_snapshot, timeout, dead_timeout, start_time)
 
-            update_stats(ax, times, timeout, dead_timeout, start_time)
-
-        plt.pause(1)
+            plt.pause(0.2)
+    except KeyboardInterrupt:
+        stop_event.set()
+        plt.close(fig)
+        print('Interrupted, shutting down...')
     print('Exiting ...')
     ping_thread.join(2)
     print('Waiting last ping finishes ...')
