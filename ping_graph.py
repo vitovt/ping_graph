@@ -290,6 +290,7 @@ if __name__ == "__main__":
             update_stats(ax, times_snapshot, timeout, dead_timeout, start_time,
                          n_scheduled=n_scheduled, n_inflight=inflight_count)
 
+
             fig.canvas.start_event_loop(0.2)
     except KeyboardInterrupt:
         stop_event.set()
