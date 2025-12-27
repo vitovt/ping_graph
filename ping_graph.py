@@ -207,6 +207,7 @@ if __name__ == "__main__":
     parser.add_argument('host', type=str, help='The host to ping')
     parser.add_argument('-W', '--timeout', type=int, default=150, help='Classification threshold in milliseconds for marking a reply as slow')
     parser.add_argument('-i', '--interval', type=float, default=0.1, help='Interval between pings in seconds. Default is 0.1 second.')
+    parser.add_argument('-M', '--max_age', type=int, help='Throw away pings older than max_age seconds')
     parser.add_argument('-D', '--dead_timeout', type=float, default=500, help=('Hard deadline in milliseconds per ping invocation. '
                               'Used to kill the ping process if it hangs. '
                               'Default is 500 ms; max is 10,000 ms; must be >= --timeout'))
@@ -241,6 +242,7 @@ if __name__ == "__main__":
     # Probe scheduling (non-blocking) -----------------------------------------
     probe_id = 0
     next_send = tme.monotonic()  # precise scheduler
+    scheduler_start = next_send
 
     try:
         while not stop_event.is_set():
@@ -258,6 +260,17 @@ if __name__ == "__main__":
 
             # Snapshot results for plotting
             with data_lock:
+                if args.max_age:
+                    # Prune old results
+                    # Probe p scheduled at: scheduler_start + (p-1)*interval
+                    # Keep if scheduled_time > now - max_age
+                    min_val = (now - args.max_age - scheduler_start) / interval + 1
+                    min_id = int(np.ceil(min_val))
+
+                    to_remove = [k for k in results if k < min_id]
+                    for k in to_remove:
+                        del results[k]
+
                 done_ids = sorted(results.keys())
                 times_snapshot = [results[i] for i in done_ids]
                 pings_snapshot = done_ids[:]  # x-axis by probe id
