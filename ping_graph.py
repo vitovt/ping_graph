@@ -291,7 +291,7 @@ if __name__ == "__main__":
                          n_scheduled=n_scheduled, n_inflight=inflight_count)
 
 
-            plt.pause(0.2)
+            fig.canvas.start_event_loop(0.2)
     except KeyboardInterrupt:
         stop_event.set()
         plt.close(fig)
